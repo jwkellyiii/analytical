@@ -20,6 +20,12 @@ describe "Analytical::Modules::Adwords" do
       @api.event('Nothing', {:some=>'data'}).should == ''
     end
   end
+  describe '#remarketing' do
+    it 'should return an empty string' do
+      @api = Analytical::Modules::Adwords.new :parent=>@parent, :key=>'wxyz'
+      @api.remarketing('Nothing', {:some=>'data'}).should == ''
+    end
+  end
   describe '#init_javascript' do
     describe 'when a matching conversion event is not found' do
       it 'should return the event js' do
@@ -68,6 +74,34 @@ describe "Analytical::Modules::Adwords" do
             :value=>'0',
           }
           @api.queue :event, 'TheBigEvent'
+          @api.init_javascript(:body_append).should =~ /https:\/\/www.googleadservices.com\/pagead\/conversion.js/
+        end
+      end
+    end
+
+    describe 'for a given remarketing event' do
+      before(:each) do
+        @api = Analytical::Modules::Adwords.new :parent=>@parent, :key=>'abcdef', :'RemarketingEvent'=>{
+            :id=>'123456',
+            :label=>'something',
+        }
+      end
+      it 'should return the remarketing js' do
+        @api.queue :remarketing, 'RemarketingEvent'
+        body_append = @api.init_javascript(:body_append).should
+        body_append.should =~ /google_conversion_id = 123456/m
+        body_append.should =~ /google_conversion_label = "something";/m
+        body_append.should =~ /google_custom_params = window.google_tag_params;/m
+        body_append.should =~ /google_remarketing_only = true;/m
+        body_append.should =~ /http:\/\/www.googleadservices.com\/pagead\/conversion.js/m
+      end
+      describe 'for https' do
+        it 'should return the event js' do
+          @api = Analytical::Modules::Adwords.new :parent=>@parent, :key=>'abcdef', :ssl=>true, :'RemarketingEvent'=>{
+              :id=>'123456',
+              :label=>'something',
+          }
+          @api.queue :remarketing, 'RemarketingEvent'
           @api.init_javascript(:body_append).should =~ /https:\/\/www.googleadservices.com\/pagead\/conversion.js/
         end
       end

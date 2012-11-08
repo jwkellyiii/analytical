@@ -16,10 +16,12 @@ module Analytical
           @command_store.commands.each do |c|
             if c[0] == :event
               event_commands << event(*c[1..-1])
+            elsif c[0] == :remarketing
+              event_commands << remarketing(*c[1..-1])
             end
           end
           html += event_commands.join("\n")
-          @command_store.commands = @command_store.commands.delete_if {|c| c[0] == :event }
+          @command_store.commands = @command_store.commands.delete_if {|c| c[0] == :event || c[0] == :remarketing }
           @initializing = false
 
           html
@@ -72,6 +74,45 @@ module Analytical
           js
         else
           "<!-- No Adwords Conversion for: #{name} -->"
+        end
+      end
+
+      #
+      # Define remarketing events in analytical.yml like:
+      #
+      # adwords:
+      #   'Some Event':
+      #     id: 4444555555
+      #     label: xxxxxxxxxxxxxxxx
+      #   'Another Event':
+      #     id: 1111333333
+      #     label: yyyyyyyyyyyyyyyy
+      #
+      def remarketing(name, *args)
+        return '' unless @initializing
+
+        data = args.first || {}
+        if conversion = options[name.to_sym]
+          conversion.symbolize_keys!
+          js = <<-HTML
+          <script type="text/javascript">
+            /* <![CDATA[ */
+            var google_conversion_id = #{conversion[:id]};
+            var google_conversion_label = "#{conversion[:label]}";
+            var google_custom_params = window.google_tag_params;
+            var google_remarketing_only = true;
+            /* ]]> */
+          </script>
+          <script type="text/javascript" src="#{protocol}://www.googleadservices.com/pagead/conversion.js"></script>
+          <noscript>
+            <div style="display:inline;">
+            <img height="1" width="1" style="border-style:none;" alt="" src="#{protocol}://googleads.g.doubleclick.net/pagead/viewthroughconversion/#{conversion[:id]}/?value=0&label=#{conversion[:label]}&guid=ON&script=0"/>
+            </div>
+          </noscript>
+          HTML
+          js
+        else
+          "<!-- No Adwords Remarketing Event for: #{name} -->"
         end
       end
 

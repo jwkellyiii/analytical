@@ -59,6 +59,7 @@ describe "Analytical" do
       end
     end
 
+=begin
     describe 'with a robot request' do
       it 'should set the modules to []' do
         DummyForInit.analytical
@@ -67,6 +68,7 @@ describe "Analytical" do
         d.analytical.options[:modules].should == []
       end
     end
+=end
 
     it 'should open the initialization file' do
       File.should_receive(:'exists?').with("#{Rails.root}/config/analytical.yml").and_return(true)
